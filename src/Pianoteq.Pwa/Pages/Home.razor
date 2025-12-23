@@ -1,50 +1,103 @@
 ﻿@page "/"
 @inject PianoteqClient Client
+@inject ISnackbar Snackbar
 
 <PageTitle>Pianoteq</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.False" Style="height: 100vh; display: flex; flex-direction: column; padding: 16px;">
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+    
+    .full-height {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+</style>
+
+<div class="full-height">
     
     @* Top Row: Previous | Preset Name | Next *@
-    <MudPaper Elevation="2" Style="padding: 16px; margin-bottom: auto;">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-            <MudIconButton Icon="@Icons.Material.Filled.NavigateBefore" 
-                           Color="Color.Primary" 
-                           Size="Size.Large"
-                           OnClick="PreviousPreset"
-                           Disabled="@_loading" />
+    <MudPaper Elevation="4" Square="true" Style="padding: 24px;">
+        <MudGrid Justify="Justify.Center">
+            <MudItem xs="2" Style="text-align: center;">
+                <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
+                               Color="Color.Primary" 
+                               Size="Size.Large"
+                               Variant="Variant.Filled"
+                               OnClick="PreviousPreset"
+                               Disabled="@_loading" />
+            </MudItem>
             
-            <MudText Typo="Typo.h5" Align="Align.Center" Style="flex: 1;">
-                @(_currentPresetName ?? "Loading...")
-            </MudText>
+            <MudItem xs="8" Style="text-align: center;">
+                <MudText Typo="Typo.h4" Align="Align.Center">
+                    @if (_loading)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                    }
+                    else
+                    {
+                        @_currentPresetName
+                    }
+                </MudText>
+            </MudItem>
             
-            <MudIconButton Icon="@Icons.Material.Filled.NavigateNext" 
-                           Color="Color.Primary" 
-                           Size="Size.Large"
-                           OnClick="NextPreset"
-                           Disabled="@_loading" />
-        </MudStack>
+            <MudItem xs="2" Style="text-align: center;">
+                <MudIconButton Icon="@Icons.Material.Filled.ArrowForward" 
+                               Color="Color.Primary" 
+                               Size="Size.Large"
+                               Variant="Variant.Filled"
+                               OnClick="NextPreset"
+                               Disabled="@_loading" />
+            </MudItem>
+        </MudGrid>
     </MudPaper>
 
+    @* Spacer *@
+    <div style="flex: 1;"></div>
+
     @* Bottom: Condition Slider *@
-    <MudPaper Elevation="2" Style="padding: 24px;">
-        <MudStack Spacing="2">
-            <MudText Typo="Typo.h6">Condition</MudText>
-            <MudSlider Value="_condition" 
+    <MudPaper Elevation="4" Square="true" Style="padding: 32px;">
+        <MudStack Spacing="3">
+            <MudGrid Justify="Justify.SpaceBetween">
+                <MudItem>
+                    <MudText Typo="Typo.h5">Condition</MudText>
+                </MudItem>
+                <MudItem>
+                    <MudChip T="string" Color="@GetConditionColor()" Size="Size.Large">
+                        @GetConditionLabel()
+                    </MudChip>
+                </MudItem>
+            </MudGrid>
+            
+            <MudSlider T="double"
+                       Value="_condition" 
                        ValueChanged="@((double val) => OnConditionChanged(val))"
                        Min="0.0" 
                        Max="1.0" 
                        Step="0.01"
                        Color="Color.Primary"
-                       Disabled="@_loading">
-                <MudText Typo="Typo.body2">
-                    @(_condition < 0.3 ? "New" : _condition < 0.7 ? "Used" : "Worn")
-                </MudText>
-            </MudSlider>
+                       Size="Size.Large"
+                       Disabled="@_loading" />
+            
+            <MudGrid>
+                <MudItem xs="4">
+                    <MudText Typo="Typo.caption" Align="Align.Left">New</MudText>
+                </MudItem>
+                <MudItem xs="4">
+                    <MudText Typo="Typo.caption" Align="Align.Center">Used</MudText>
+                </MudItem>
+                <MudItem xs="4">
+                    <MudText Typo="Typo.caption" Align="Align.Right">Worn</MudText>
+                </MudItem>
+            </MudGrid>
         </MudStack>
     </MudPaper>
 
-</MudContainer>
+</div>
 
 @code {
     private string? _currentPresetName;
@@ -60,25 +113,35 @@
     private async Task LoadCurrentState()
     {
         _loading = true;
+        StateHasChanged();
+        
         try
         {
             var info = await Client.GetInfoAsync();
             _currentPresetName = info.CurrentPreset?.Name ?? "Unknown";
 
+            // Get the actual condition value from the current preset
             var parameters = await Client.GetParametersAsync();
             var conditionParam = parameters.FirstOrDefault(p => p.Id == "Condition");
             if (conditionParam != null)
             {
                 _condition = conditionParam.NormalizedValue;
             }
+            else
+            {
+                // Default if not found
+                _condition = 0.5;
+            }
         }
         catch (Exception ex)
         {
-            _currentPresetName = $"Error: {ex.Message}";
+            _currentPresetName = "Connection Error";
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
         }
         finally
         {
             _loading = false;
+            StateHasChanged();
         }
     }
 
@@ -90,8 +153,9 @@
             await Client.PrevPresetAsync();
             await LoadCurrentState();
         }
-        finally
+        catch (Exception ex)
         {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
             _loading = false;
         }
     }
@@ -104,8 +168,9 @@
             await Client.NextPresetAsync();
             await LoadCurrentState();
         }
-        finally
+        catch (Exception ex)
         {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
             _loading = false;
         }
     }
@@ -113,6 +178,7 @@
     private void OnConditionChanged(double value)
     {
         _condition = value;
+        StateHasChanged();
         
         // Debounce the API call
         _debounceTimer?.Dispose();
@@ -122,11 +188,28 @@
             {
                 await Client.SetParameterAsync("Condition", _condition);
             }
-            catch
+            catch (Exception ex)
             {
-                // Silently ignore errors during slider changes
+                await InvokeAsync(() =>
+                {
+                    Snackbar.Add($"Failed to update: {ex.Message}", Severity.Warning);
+                });
             }
         }, null, 300, Timeout.Infinite);
+    }
+
+    private string GetConditionLabel()
+    {
+        if (_condition < 0.3) return "New Piano";
+        if (_condition < 0.7) return "Used Piano";
+        return "Worn Piano";
+    }
+
+    private Color GetConditionColor()
+    {
+        if (_condition < 0.3) return Color.Success;
+        if (_condition < 0.7) return Color.Warning;
+        return Color.Error;
     }
 
     public void Dispose()
