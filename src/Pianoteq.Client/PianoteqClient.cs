@@ -142,6 +142,16 @@ public class PianoteqClient : IDisposable
     }
 
     /// <summary>
+    /// Get only the favorite presets
+    /// </summary>
+    /// <param name="presetType">Type of presets to filter</param>
+    public async Task<List<PresetInfo>> GetFavoritePresetsAsync(string presetType = "full", CancellationToken cancellationToken = default)
+    {
+        var allPresets = await GetListOfPresetsAsync(presetType, cancellationToken);
+        return allPresets.Where(p => p.Favourite == true).ToList();
+    }
+
+    /// <summary>
     /// Load a preset
     /// </summary>
     /// <param name="name">Preset name</param>
@@ -212,6 +222,22 @@ public class PianoteqClient : IDisposable
     public async Task PrevFavouritePresetAsync(CancellationToken cancellationToken = default)
     {
         await SendRequestAsync("prevFavouritePreset", null, cancellationToken);
+    }
+
+    /// <summary>
+    /// Check if the current preset is marked as a favorite
+    /// </summary>
+    public async Task<bool> IsCurrentPresetFavoriteAsync(CancellationToken cancellationToken = default)
+    {
+        var info = await GetInfoAsync(cancellationToken);
+        if (info.CurrentPreset == null) return false;
+        
+        var allPresets = await GetListOfPresetsAsync(cancellationToken: cancellationToken);
+        var currentPreset = allPresets.FirstOrDefault(p => 
+            p.Name == info.CurrentPreset.Name && 
+            p.Bank == info.CurrentPreset.Bank);
+        
+        return currentPreset?.Favourite == true;
     }
 
     /// <summary>

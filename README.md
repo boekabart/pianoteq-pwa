@@ -63,6 +63,27 @@ await client.NextPresetAsync();
 await client.PrevPresetAsync();
 await client.NextInstrumentAsync();
 
+// Work with favorites
+var favorites = await client.GetFavoritePresetsAsync();
+Console.WriteLine($"You have {favorites.Count} favorite presets");
+
+foreach (var fav in favorites)
+{
+    Console.WriteLine($"★ {fav.Name}");
+    if (fav.Tags != null && fav.Tags.Any())
+    {
+        Console.WriteLine($"  Tags: {string.Join(", ", fav.Tags)}");
+    }
+}
+
+// Navigate through favorites only
+await client.NextFavouritePresetAsync();
+await client.PrevFavouritePresetAsync();
+
+// Check if current preset is a favorite
+bool isFavorite = await client.IsCurrentPresetFavoriteAsync();
+Console.WriteLine($"Current preset is favorite: {isFavorite}");
+
 // A/B comparison
 await client.AbCopyAsync();
 await client.AbSwitchAsync();
@@ -94,6 +115,7 @@ The client implements all Pianoteq JSON-RPC methods:
 
 ### Presets
 - `GetListOfPresetsAsync()` - Get list of presets
+- `GetFavoritePresetsAsync()` - Get only favorite presets
 - `LoadPresetAsync()` - Load a preset
 - `SavePresetAsync()` - Save current preset
 - `DeletePresetAsync()` - Delete a preset
@@ -101,6 +123,7 @@ The client implements all Pianoteq JSON-RPC methods:
 - `NextPresetAsync()` / `PrevPresetAsync()` - Navigate presets
 - `NextFavouritePresetAsync()` / `PrevFavouritePresetAsync()` - Navigate favourites
 - `NextInstrumentAsync()` / `PrevInstrumentAsync()` - Navigate instruments
+- `IsCurrentPresetFavoriteAsync()` - Check if current preset is a favorite
 
 ### Parameters
 - `GetParametersAsync()` - Get all parameters
@@ -139,7 +162,19 @@ using Pianoteq.Client.Exceptions;
 
 try
 {
-    await client.LoadPresetAsync("NonExistentPreset");
+    await client.LoadPresetAsync("NonExistentPr
+
+## Important Notes
+
+### Favorites Management
+The client can **read** and **navigate** favorite presets, but **cannot set/unset** favorites programmatically. Favorites must be managed through the Pianoteq UI. The API provides:
+- ✅ `GetFavoritePresetsAsync()` - Get list of favorite presets
+- ✅ `NextFavouritePresetAsync()` / `PrevFavouritePresetAsync()` - Navigate favorites
+- ✅ `IsCurrentPresetFavoriteAsync()` - Check if current preset is favorited
+- ❌ No API method to mark/unmark presets as favorites (use Pianoteq UI)
+
+### Preset Tags
+Similarly, preset tags are read-only via the API and must be managed in the Pianoteq UI.eset");
 }
 catch (PianoteqException ex)
 {

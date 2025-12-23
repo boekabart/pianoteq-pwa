@@ -45,6 +45,46 @@ try
     }
     Console.WriteLine();
 
+    // Test favorites functionality
+    Console.WriteLine("=== Favorites Management ===");
+    var favorites = await client.GetFavoritePresetsAsync();
+    Console.WriteLine($"Total favorite presets: {favorites.Count}");
+    
+    if (favorites.Any())
+    {
+        Console.WriteLine("\nAll favorite presets:");
+        foreach (var fav in favorites)
+        {
+            var tags = fav.Tags != null && fav.Tags.Any() 
+                ? $" [Tags: {string.Join(", ", fav.Tags)}]" 
+                : "";
+            Console.WriteLine($"  ★ {fav.Name}{tags}");
+        }
+        
+        // Test navigation
+        Console.WriteLine("\n--- Testing favorite navigation ---");
+        var currentInfo = await client.GetInfoAsync();
+        Console.WriteLine($"Current preset: {currentInfo.CurrentPreset?.Name}");
+        
+        Console.WriteLine("\nNavigating to next favorite...");
+        await client.NextFavouritePresetAsync();
+        currentInfo = await client.GetInfoAsync();
+        var isFavorite = await client.IsCurrentPresetFavoriteAsync();
+        Console.WriteLine($"After next: {currentInfo.CurrentPreset?.Name} (Is favorite: {isFavorite})");
+        
+        Console.WriteLine("\nNavigating to previous favorite...");
+        await client.PrevFavouritePresetAsync();
+        currentInfo = await client.GetInfoAsync();
+        isFavorite = await client.IsCurrentPresetFavoriteAsync();
+        Console.WriteLine($"After prev: {currentInfo.CurrentPreset?.Name} (Is favorite: {isFavorite})");
+    }
+    else
+    {
+        Console.WriteLine("\n💡 No favorites found. You can mark presets as favorites in the Pianoteq UI.");
+        Console.WriteLine("   (Favorites cannot be set via the JSON-RPC API)");
+    }
+    Console.WriteLine();
+
     // Metronome info
     var metronome = await client.GetMetronomeAsync();
     Console.WriteLine("=== Metronome ===");
