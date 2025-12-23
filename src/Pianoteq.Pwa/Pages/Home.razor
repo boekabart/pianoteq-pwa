@@ -1,7 +1,136 @@
 ﻿@page "/"
+@inject PianoteqClient Client
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Pianoteq</PageTitle>
 
-<h1>Hello, world!</h1>
+<MudContainer MaxWidth="MaxWidth.False" Style="height: 100vh; display: flex; flex-direction: column; padding: 16px;">
+    
+    @* Top Row: Previous | Preset Name | Next *@
+    <MudPaper Elevation="2" Style="padding: 16px; margin-bottom: auto;">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudIconButton Icon="@Icons.Material.Filled.NavigateBefore" 
+                           Color="Color.Primary" 
+                           Size="Size.Large"
+                           OnClick="PreviousPreset"
+                           Disabled="@_loading" />
+            
+            <MudText Typo="Typo.h5" Align="Align.Center" Style="flex: 1;">
+                @(_currentPresetName ?? "Loading...")
+            </MudText>
+            
+            <MudIconButton Icon="@Icons.Material.Filled.NavigateNext" 
+                           Color="Color.Primary" 
+                           Size="Size.Large"
+                           OnClick="NextPreset"
+                           Disabled="@_loading" />
+        </MudStack>
+    </MudPaper>
 
-Welcome to your new app.
+    @* Bottom: Condition Slider *@
+    <MudPaper Elevation="2" Style="padding: 24px;">
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.h6">Condition</MudText>
+            <MudSlider Value="_condition" 
+                       ValueChanged="@((double val) => OnConditionChanged(val))"
+                       Min="0.0" 
+                       Max="1.0" 
+                       Step="0.01"
+                       Color="Color.Primary"
+                       Disabled="@_loading">
+                <MudText Typo="Typo.body2">
+                    @(_condition < 0.3 ? "New" : _condition < 0.7 ? "Used" : "Worn")
+                </MudText>
+            </MudSlider>
+        </MudStack>
+    </MudPaper>
+
+</MudContainer>
+
+@code {
+    private string? _currentPresetName;
+    private double _condition = 0.5;
+    private bool _loading = true;
+    private System.Threading.Timer? _debounceTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCurrentState();
+    }
+
+    private async Task LoadCurrentState()
+    {
+        _loading = true;
+        try
+        {
+            var info = await Client.GetInfoAsync();
+            _currentPresetName = info.CurrentPreset?.Name ?? "Unknown";
+
+            var parameters = await Client.GetParametersAsync();
+            var conditionParam = parameters.FirstOrDefault(p => p.Id == "Condition");
+            if (conditionParam != null)
+            {
+                _condition = conditionParam.NormalizedValue;
+            }
+        }
+        catch (Exception ex)
+        {
+            _currentPresetName = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task PreviousPreset()
+    {
+        _loading = true;
+        try
+        {
+            await Client.PrevPresetAsync();
+            await LoadCurrentState();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task NextPreset()
+    {
+        _loading = true;
+        try
+        {
+            await Client.NextPresetAsync();
+            await LoadCurrentState();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OnConditionChanged(double value)
+    {
+        _condition = value;
+        
+        // Debounce the API call
+        _debounceTimer?.Dispose();
+        _debounceTimer = new System.Threading.Timer(async _ =>
+        {
+            try
+            {
+                await Client.SetParameterAsync("Condition", _condition);
+            }
+            catch
+            {
+                // Silently ignore errors during slider changes
+            }
+        }, null, 300, Timeout.Infinite);
+    }
+
+    public void Dispose()
+    {
+        _debounceTimer?.Dispose();
+    }
+}
