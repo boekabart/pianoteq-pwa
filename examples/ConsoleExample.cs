@@ -25,20 +25,39 @@ class Program
             Console.WriteLine($"Current Preset: {info.CurrentPreset?.Name ?? "None"}");
             Console.WriteLine($"Bank: {info.CurrentPreset?.Bank ?? "N/A"}\n");
 
+            // Dump current preset from GetInfo
+            Console.WriteLine("=== Current Preset from GetInfo ===");
+            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(info.CurrentPreset, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+            Console.WriteLine();
+
             // Get performance info
             var perfInfo = await client.GetPerfInfoAsync();
             Console.WriteLine($"CPU Usage: {perfInfo.CpuUsage:F1}%");
             Console.WriteLine($"Active Voices: {perfInfo.Voices}/{perfInfo.MaxVoices}\n");
 
             // List available presets (first 10)
-            Console.WriteLine("=== First 10 Presets ===");
+            Console.WriteLine("=== First 10 Presets from GetListOfPresets ===");
             var presets = await client.GetListOfPresetsAsync();
             foreach (var preset in presets.Take(10))
             {
                 var favMarker = preset.Favourite == true ? "★" : " ";
-                Console.WriteLine($"{favMarker} {preset.Name} [{preset.Bank}]");
+                Console.WriteLine($"{favMarker} {preset.Name} [{preset.Bank}] - Instrument: {preset.Instrument}");
             }
             Console.WriteLine($"Total presets: {presets.Count}\n");
+
+            // Dump first preset with all fields
+            Console.WriteLine("=== First Preset Full JSON ===");
+            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(presets.First(), new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+            Console.WriteLine();
+
+            // Find the current preset in the list to compare
+            var currentPresetInList = presets.FirstOrDefault(p => p.Name == info.CurrentPreset?.Name);
+            if (currentPresetInList != null)
+            {
+                Console.WriteLine("=== Current Preset from List (compare with GetInfo) ===");
+                Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(currentPresetInList, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+                Console.WriteLine();
+            }
 
             // Get current parameters
             Console.WriteLine("=== Selected Parameters ===");

@@ -1,4 +1,5 @@
 ﻿@page "/"
+@using Pianoteq.Client.Models
 @inject PianoteqClient Client
 @inject ISnackbar Snackbar
 
@@ -43,6 +44,48 @@
                         @_currentPresetName
                     }
                 </MudText>
+                
+                @* Preset Metadata Chips *@
+                @if (_currentPreset != null && !_loading)
+                {
+                    <MudStack Row="true" Spacing="2" Justify="Justify.Center" Style="margin-top: 12px;">
+                        @* Favorite Status *@
+                        <MudChip T="string" 
+                                 Icon="@Icons.Material.Filled.Star" 
+                                 Color="@(_currentPreset.Favourite == true ? Color.Warning : Color.Default)"
+                                 Variant="@(_currentPreset.Favourite == true ? Variant.Filled : Variant.Outlined)"
+                                 Size="Size.Small">
+                            Favorite
+                        </MudChip>
+                        
+                        @* Instrument/Set Name *@
+                        @if (!string.IsNullOrEmpty(_currentPreset.Instrument))
+                        {
+                            <MudChip T="string" 
+                                     Icon="@Icons.Material.Filled.Piano" 
+                                     Color="Color.Primary"
+                                     Variant="Variant.Filled"
+                                     Size="Size.Small">
+                                @_currentPreset.Instrument
+                            </MudChip>
+                        }
+                        
+                        @* Tags *@
+                        @if (_currentPreset.Tags != null && _currentPreset.Tags.Any())
+                        {
+                            @foreach (var tag in _currentPreset.Tags)
+                            {
+                                <MudChip T="string" 
+                                         Icon="@Icons.Material.Filled.LocalOffer"
+                                         Color="@GetTagColor(tag)"
+                                         Variant="Variant.Filled"
+                                         Size="Size.Small">
+                                    @tag
+                                </MudChip>
+                            }
+                        }
+                    </MudStack>
+                }
             </MudItem>
             
             <MudItem xs="2" Style="text-align: center;">
@@ -56,8 +99,20 @@
         </MudGrid>
     </MudPaper>
 
-    @* Spacer *@
-    <div style="flex: 1;"></div>
+    @* Debug Info *@
+    @if (_currentPreset != null && !_loading)
+    {
+        <div style="flex: 1; overflow: auto; padding: 20px;">
+            <MudPaper Elevation="2" Style="padding: 16px; background-color: #f5f5f5;">
+                <MudText Typo="Typo.h6" Style="margin-bottom: 8px;">Debug: Current Preset Data</MudText>
+                <pre style="font-size: 12px; overflow-x: auto;">@System.Text.Json.JsonSerializer.Serialize(_currentPreset, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })</pre>
+            </MudPaper>
+        </div>
+    }
+    else
+    {
+        <div style="flex: 1;"></div>
+    }
 
     @* Bottom: Condition Slider *@
     <MudPaper Elevation="4" Square="true" Style="padding: 32px;">
@@ -101,6 +156,7 @@
 
 @code {
     private string? _currentPresetName;
+    private PresetInfo? _currentPreset;
     private double _condition = 0.5;
     private bool _loading = true;
     private System.Threading.Timer? _debounceTimer;
@@ -118,6 +174,7 @@
         try
         {
             var info = await Client.GetInfoAsync();
+            _currentPreset = info.CurrentPreset;
             _currentPresetName = info.CurrentPreset?.Name ?? "Unknown";
 
             // Get the actual condition value from the current preset
@@ -253,6 +310,18 @@
         if (_condition < 0.3) return Color.Success;
         if (_condition < 0.7) return Color.Warning;
         return Color.Error;
+    }
+
+    private Color GetTagColor(string tag)
+    {
+        // Color code specific tags
+        return tag.ToLowerInvariant() switch
+        {
+            "trial" => Color.Info,
+            "new" => Color.Success,
+            "featured" => Color.Secondary,
+            _ => Color.Default
+        };
     }
 
     public void Dispose()
