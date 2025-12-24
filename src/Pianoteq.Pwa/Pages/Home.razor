@@ -1,7 +1,12 @@
-﻿@page "/"
+@page "/"
 @using Pianoteq.Client.Models
+@using Pianoteq.Pwa.Services
+@using Microsoft.JSInterop
 @inject PianoteqClient Client
+@inject FavoritesService Favorites
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@implements IDisposable
 
 <PageTitle>Pianoteq</PageTitle>
 
@@ -17,240 +22,435 @@
         display: flex;
         flex-direction: column;
     }
+    
+    .preset-button {
+        width: 100%;
+        text-align: left;
+        justify-content: flex-start;
+    }
+    
+    .preset-scroll {
+        max-height: 100%;
+        overflow-y: auto;
+    }
 </style>
 
 <div class="full-height">
     
-    @* Top Row: Previous | Preset Name | Next *@
-    <MudPaper Elevation="4" Square="true" Style="padding: 24px;">
-        <MudGrid Justify="Justify.Center">
-            <MudItem xs="2" Style="text-align: center;">
-                <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
-                               Color="Color.Primary" 
-                               Size="Size.Large"
-                               Variant="Variant.Filled"
-                               OnClick="PreviousPreset"
-                               Disabled="@_loading" />
-            </MudItem>
-            
-            <MudItem xs="8" Style="text-align: center;">
-                <MudText Typo="Typo.h4" Align="Align.Center">
-                    @if (_loading)
-                    {
-                        <MudProgressCircular Size="Size.Small" Indeterminate="true" />
-                    }
-                    else
-                    {
-                        @_currentPresetName
-                    }
-                </MudText>
-                
-                @* Preset Metadata Chips *@
-                @if (_currentPreset != null && !_loading)
-                {
-                    <MudStack Row="true" Spacing="2" Justify="Justify.Center" Style="margin-top: 12px;">
-                        @* Favorite Status *@
-                        <MudChip T="string" 
-                                 Icon="@Icons.Material.Filled.Star" 
-                                 Color="@(_currentPreset.Favourite == true ? Color.Warning : Color.Default)"
-                                 Variant="@(_currentPreset.Favourite == true ? Variant.Filled : Variant.Outlined)"
-                                 Size="Size.Small">
-                            Favorite
-                        </MudChip>
-                        
-                        @* Instrument/Set Name *@
-                        @if (!string.IsNullOrEmpty(_currentPreset.Instrument))
-                        {
-                            <MudChip T="string" 
-                                     Icon="@Icons.Material.Filled.Piano" 
-                                     Color="Color.Primary"
-                                     Variant="Variant.Filled"
-                                     Size="Size.Small">
-                                @_currentPreset.Instrument
-                            </MudChip>
-                        }
-                        
-                        @* Tags *@
-                        @if (_currentPreset.Tags != null && _currentPreset.Tags.Any())
-                        {
-                            @foreach (var tag in _currentPreset.Tags)
-                            {
-                                <MudChip T="string" 
-                                         Icon="@Icons.Material.Filled.LocalOffer"
-                                         Color="@GetTagColor(tag)"
-                                         Variant="Variant.Filled"
-                                         Size="Size.Small">
-                                    @tag
-                                </MudChip>
-                            }
-                        }
-                    </MudStack>
-                }
-            </MudItem>
-            
-            <MudItem xs="2" Style="text-align: center;">
-                <MudIconButton Icon="@Icons.Material.Filled.ArrowForward" 
-                               Color="Color.Primary" 
-                               Size="Size.Large"
-                               Variant="Variant.Filled"
-                               OnClick="NextPreset"
-                               Disabled="@_loading" />
-            </MudItem>
-        </MudGrid>
-    </MudPaper>
-
-    @* Debug Info *@
-    @if (_currentPreset != null && !_loading)
+    @if (_loading)
     {
-        <div style="flex: 1; overflow: auto; padding: 20px;">
-            <MudPaper Elevation="2" Style="padding: 16px; background-color: #f5f5f5;">
-                <MudText Typo="Typo.h6" Style="margin-bottom: 8px;">Debug: Current Preset Data</MudText>
-                <pre style="font-size: 12px; overflow-x: auto;">@System.Text.Json.JsonSerializer.Serialize(_currentPreset, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })</pre>
-            </MudPaper>
-        </div>
+        <MudPaper Elevation="4" Square="true" Style="padding: 48px; flex: 1; display: flex; align-items: center; justify-content: center;">
+            <MudStack AlignItems="AlignItems.Center" Spacing="4">
+                <MudProgressCircular Size="Size.Large" Indeterminate="true" />
+                <MudText Typo="Typo.h6">Loading presets...</MudText>
+            </MudStack>
+        </MudPaper>
     }
     else
     {
-        <div style="flex: 1;"></div>
-    }
+        @* Navigation Rows *@
+        <MudPaper Elevation="4" Square="true" Style="padding: 16px;">
+            <MudStack Spacing="2">
+                @* Row 1: Favorite Navigation *@
+                <MudGrid Justify="Justify.Center">
+                    <MudItem xs="2" Style="text-align: center;">
+                        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
+                                       Color="Color.Warning"
+                                       Size="Size.Medium"
+                                       Variant="Variant.Outlined"
+                                       OnClick="PreviousFavorite"
+                                       Disabled="@(!_favoritePresets.Any())" />
+                    </MudItem>
+                    <MudItem xs="8" Style="text-align: center;">
+                        <MudIconButton Icon="@(_isFavorite ? Icons.Material.Filled.Star : Icons.Material.Outlined.StarBorder)"
+                                       Color="Color.Warning"
+                                       Size="Size.Large"
+                                       Variant="@(_isFavorite ? Variant.Filled : Variant.Outlined)"
+                                       OnClick="ToggleFavorite" />
+                    </MudItem>
+                    <MudItem xs="2" Style="text-align: center;">
+                        <MudIconButton Icon="@Icons.Material.Filled.ArrowForward"
+                                       Color="Color.Warning"
+                                       Size="Size.Medium"
+                                       Variant="Variant.Outlined"
+                                       OnClick="NextFavorite"
+                                       Disabled="@(!_favoritePresets.Any())" />
+                    </MudItem>
+                </MudGrid>
 
-    @* Bottom: Condition Slider *@
-    <MudPaper Elevation="4" Square="true" Style="padding: 32px;">
-        <MudStack Spacing="3">
-            <MudGrid Justify="Justify.SpaceBetween">
-                <MudItem>
-                    <MudText Typo="Typo.h5">Condition</MudText>
+                @* Row 2: Instrument Navigation *@
+                <MudGrid Justify="Justify.Center">
+                    <MudItem xs="2" Style="text-align: center;">
+                        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
+                                       Color="Color.Primary"
+                                       Size="Size.Medium"
+                                       OnClick="PreviousInstrument" />
+                    </MudItem>
+                    <MudItem xs="8" Style="text-align: center;">
+                        <MudText Typo="Typo.h6">@_currentPreset?.Instrument</MudText>
+                    </MudItem>
+                    <MudItem xs="2" Style="text-align: center;">
+                        <MudIconButton Icon="@Icons.Material.Filled.ArrowForward"
+                                       Color="Color.Primary"
+                                       Size="Size.Medium"
+                                       OnClick="NextInstrument" />
+                    </MudItem>
+                </MudGrid>
+
+                @* Row 3: Preset Navigation *@
+                <MudGrid Justify="Justify.Center">
+                    <MudItem xs="2" Style="text-align: center;">
+                        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
+                                       Color="Color.Secondary"
+                                       Size="Size.Medium"
+                                       OnClick="PreviousPreset" />
+                    </MudItem>
+                    <MudItem xs="8" Style="text-align: center;">
+                        <MudText Typo="Typo.h5">@_currentPreset?.Name</MudText>
+                    </MudItem>
+                    <MudItem xs="2" Style="text-align: center;">
+                        <MudIconButton Icon="@Icons.Material.Filled.ArrowForward"
+                                       Color="Color.Secondary"
+                                       Size="Size.Medium"
+                                       OnClick="NextPreset" />
+                    </MudItem>
+                </MudGrid>
+            </MudStack>
+        </MudPaper>
+
+        @* Middle: Preset Lists *@
+        <div style="flex: 1; overflow: hidden; padding: 16px;">
+            <MudGrid Style="height: 100%;">
+                @* Left: Favorites *@
+                <MudItem xs="6" Style="height: 100%;">
+                    <MudPaper Elevation="2" Style="height: 100%; display: flex; flex-direction: column; padding: 16px;">
+                        <MudText Typo="Typo.h6" Style="margin-bottom: 8px;">Favorites</MudText>
+                        <div class="preset-scroll">
+                            @if (!_favoritePresets.Any())
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">No favorites yet. Click the star to add!</MudText>
+                            }
+                            else
+                            {
+                                <MudStack Spacing="2">
+                                    @foreach (var preset in _favoritePresets)
+                                    {
+                                        <MudButton Class="preset-button"
+                                                   Variant="@(preset.Name == _currentPreset?.Name ? Variant.Filled : Variant.Outlined)"
+                                                   Color="@(preset.Name == _currentPreset?.Name ? Color.Primary : Color.Default)"
+                                                   Size="Size.Large"
+                                                   StartIcon="@Icons.Material.Filled.Star"
+                                                   OnClick="@(() => LoadPresetAsync(preset))">
+                                            @preset.Name
+                                        </MudButton>
+                                    }
+                                </MudStack>
+                            }
+                        </div>
+                    </MudPaper>
                 </MudItem>
-                <MudItem>
-                    <MudChip T="string" Color="@GetConditionColor()" Size="Size.Large">
-                        @GetConditionLabel()
-                    </MudChip>
+
+                @* Right: All Presets *@
+                <MudItem xs="6" Style="height: 100%;">
+                    <MudPaper Elevation="2" Style="height: 100%; display: flex; flex-direction: column; padding: 16px;">
+                        <MudText Typo="Typo.h6" Style="margin-bottom: 8px;">All Presets (@_filteredPresets.Count)</MudText>
+                        <div class="preset-scroll" id="preset-scroll-container">
+                            <MudStack Spacing="1">
+                                @foreach (var preset in _filteredPresets)
+                                {
+                                    var isFav = Favorites.IsFavorite(preset.Name);
+                                    var isLicensed = preset.LicenseStatus == "ok";
+                                    var isSelected = preset.Name == _currentPreset?.Name;
+                                    <MudButton Class="preset-button"
+                                               id="@(isSelected ? "selected-preset" : "")"
+                                               Variant="@(isSelected ? Variant.Filled : Variant.Outlined)"
+                                               Color="@(isSelected ? Color.Primary : Color.Default)"
+                                               Size="Size.Small"
+                                               EndIcon="@(isFav ? Icons.Material.Filled.Star : (isLicensed ? "" : Icons.Material.Filled.Lock))"
+                                               OnClick="@(() => LoadPresetAsync(preset))">
+                                        @preset.Name
+                                    </MudButton>
+                                }
+                            </MudStack>
+                        </div>
+                    </MudPaper>
                 </MudItem>
             </MudGrid>
-            
-            <MudSlider T="double"
-                       Value="_condition" 
-                       ValueChanged="@((double val) => OnConditionChanged(val))"
-                       Min="0.0" 
-                       Max="1.0" 
-                       Step="0.01"
-                       Color="Color.Primary"
-                       Size="Size.Large"
-                       Disabled="@_loading" />
-            
+        </div>
+
+        @* Bottom: Condition Slider + Settings *@
+        <MudPaper Elevation="4" Square="true" Style="padding: 24px;">
             <MudGrid>
-                <MudItem xs="4">
-                    <MudText Typo="Typo.caption" Align="Align.Left">New</MudText>
+                @* Slider *@
+                <MudItem xs="9">
+                    <MudStack Spacing="2">
+                        <MudGrid Justify="Justify.SpaceBetween">
+                            <MudItem>
+                                <MudText Typo="Typo.h6">Condition</MudText>
+                            </MudItem>
+                            <MudItem>
+                                <MudChip T="string" Color="@GetConditionColor()" Size="Size.Medium">
+                                    @GetConditionLabel()
+                                </MudChip>
+                            </MudItem>
+                        </MudGrid>
+                        
+                        <MudSlider T="double"
+                                   Value="_condition"
+                                   ValueChanged="@((double val) => OnConditionChanged(val))"
+                                   Min="0.0"
+                                   Max="1.0"
+                                   Step="0.01"
+                                   Color="Color.Primary"
+                                   Size="Size.Large" />
+                        
+                        <MudGrid>
+                            <MudItem xs="4">
+                                <MudText Typo="Typo.caption" Align="Align.Left">New</MudText>
+                            </MudItem>
+                            <MudItem xs="4">
+                                <MudText Typo="Typo.caption" Align="Align.Center">Used</MudText>
+                            </MudItem>
+                            <MudItem xs="4">
+                                <MudText Typo="Typo.caption" Align="Align.Right">Worn</MudText>
+                            </MudItem>
+                        </MudGrid>
+                    </MudStack>
                 </MudItem>
-                <MudItem xs="4">
-                    <MudText Typo="Typo.caption" Align="Align.Center">Used</MudText>
-                </MudItem>
-                <MudItem xs="4">
-                    <MudText Typo="Typo.caption" Align="Align.Right">Worn</MudText>
+
+                @* Settings *@
+                <MudItem xs="3" Style="display: flex; align-items: center; justify-content: flex-end;">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Settings</MudText>
+                        <MudChip T="string"
+                                 Icon="@(_licensedOnly ? Icons.Material.Filled.CheckCircle : Icons.Material.Outlined.Circle)"
+                                 Color="@(_licensedOnly ? Color.Success : Color.Default)"
+                                 Variant="@(_licensedOnly ? Variant.Filled : Variant.Outlined)"
+                                 Size="Size.Small"
+                                 OnClick="ToggleLicensedOnly">
+                            Licensed Only
+                        </MudChip>
+                    </MudStack>
                 </MudItem>
             </MudGrid>
-        </MudStack>
-    </MudPaper>
+        </MudPaper>
+    }
 
 </div>
 
 @code {
-    private string? _currentPresetName;
+    private List<PresetInfo> _allPresets = new();
+    private List<PresetInfo> _filteredPresets = new();
+    private List<PresetInfo> _favoritePresets = new();
     private PresetInfo? _currentPreset;
     private double _condition = 0.5;
     private bool _loading = true;
+    private bool _licensedOnly = true;
+    private bool _isFavorite = false;
     private System.Threading.Timer? _debounceTimer;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadCurrentState();
+        await Favorites.InitializeAsync();
+        await LoadAllPresetsAsync();
     }
 
-    private async Task LoadCurrentState()
+    private async Task LoadAllPresetsAsync()
     {
         _loading = true;
         StateHasChanged();
         
         try
         {
+            // Load all presets
+            _allPresets = await Client.GetListOfPresetsAsync();
+            
+            // Get current preset
             var info = await Client.GetInfoAsync();
-            _currentPreset = info.CurrentPreset;
-            _currentPresetName = info.CurrentPreset?.Name ?? "Unknown";
-
-            // Get the actual condition value from the current preset
-            var parameters = await Client.GetParametersAsync();
-            
-            // Debug: Find all condition-related parameters
-            var conditionParams = parameters.Where(p => 
-                p.Id.Contains("Condition", StringComparison.OrdinalIgnoreCase) ||
-                p.Name.Contains("Condition", StringComparison.OrdinalIgnoreCase)
-            ).ToList();
-            
-            if (conditionParams.Any())
+            _currentPreset = _allPresets.FirstOrDefault(p => p.Name == info.CurrentPreset?.Name);
+            if (_currentPreset == null && _allPresets.Any())
             {
-                // Use the first condition parameter found
-                var conditionParam = conditionParams.First();
-                _condition = conditionParam.NormalizedValue;
-                
-                // Debug log
-                Console.WriteLine($"Found condition parameter: ID='{conditionParam.Id}', Name='{conditionParam.Name}', Value={conditionParam.NormalizedValue}");
+                _currentPreset = _allPresets.First();
             }
-            else
-            {
-                // Fallback: try exact match
-                var conditionParam = parameters.FirstOrDefault(p => p.Id == "Condition");
-                if (conditionParam != null)
-                {
-                    _condition = conditionParam.NormalizedValue;
-                }
-                else
-                {
-                    // Default if not found
-                    _condition = 0.5;
-                    Console.WriteLine($"Condition parameter not found. Available params: {string.Join(", ", parameters.Take(10).Select(p => p.Id))}");
-                }
-            }
+            
+            // Load condition
+            await LoadConditionAsync();
+            
+            // Update filtered lists
+            UpdateFilteredLists();
+            
+            _isFavorite = _currentPreset != null && Favorites.IsFavorite(_currentPreset.Name);
         }
         catch (Exception ex)
         {
-            _currentPresetName = "Connection Error";
-            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Error loading presets: {ex.Message}", Severity.Error);
         }
         finally
         {
             _loading = false;
             StateHasChanged();
+            await ScrollToSelectedPreset();
         }
     }
 
-    private async Task PreviousPreset()
+    private void UpdateFilteredLists()
     {
-        _loading = true;
+        // Filter presets based on licensed setting
+        _filteredPresets = _licensedOnly
+            ? _allPresets.Where(p => p.LicenseStatus == "ok").ToList()
+            : _allPresets;
+        
+        // Get favorite presets
+        var favoriteNames = Favorites.GetAllFavorites();
+        _favoritePresets = _allPresets.Where(p => favoriteNames.Contains(p.Name)).ToList();
+    }
+
+    private async Task LoadConditionAsync()
+    {
         try
         {
-            await Client.PrevPresetAsync();
-            await LoadCurrentState();
+            var parameters = await Client.GetParametersAsync();
+            var conditionParam = parameters.FirstOrDefault(p =>
+                p.Id.Contains("Condition", StringComparison.OrdinalIgnoreCase) ||
+                p.Name.Contains("Condition", StringComparison.OrdinalIgnoreCase));
+            
+            if (conditionParam != null)
+            {
+                _condition = conditionParam.NormalizedValue;
+            }
+        }
+        catch
+        {
+            // Ignore errors loading condition
+        }
+    }
+
+    private async Task LoadPresetAsync(PresetInfo preset)
+    {
+        try
+        {
+            await Client.LoadPresetAsync(preset.Name);
+            _currentPreset = preset;
+            _isFavorite = Favorites.IsFavorite(preset.Name);
+            await LoadConditionAsync();
+            StateHasChanged();
+            await ScrollToSelectedPreset();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
-            _loading = false;
+            Snackbar.Add($"Error loading preset: {ex.Message}", Severity.Error);
         }
+    }
+
+    private async Task ScrollToSelectedPreset()
+    {
+        try
+        {
+            await Task.Delay(50); // Small delay to ensure DOM is updated
+            await JS.InvokeVoidAsync("eval", @"
+                const selected = document.getElementById('selected-preset');
+                const container = document.getElementById('preset-scroll-container');
+                if (selected && container) {
+                    const containerRect = container.getBoundingClientRect();
+                    const selectedRect = selected.getBoundingClientRect();
+                    const scrollTop = selected.offsetTop - container.offsetTop - (containerRect.height / 2) + (selectedRect.height / 2);
+                    container.scrollTo({ top: scrollTop, behavior: 'smooth' });
+                }
+            ");
+        }
+        catch
+        {
+            // Ignore scroll errors
+        }
+    }
+
+    private async Task ToggleFavorite()
+    {
+        if (_currentPreset == null) return;
+        
+        await Favorites.ToggleFavoriteAsync(_currentPreset.Name);
+        _isFavorite = Favorites.IsFavorite(_currentPreset.Name);
+        UpdateFilteredLists();
+        StateHasChanged();
+    }
+
+    private void ToggleLicensedOnly()
+    {
+        _licensedOnly = !_licensedOnly;
+        UpdateFilteredLists();
+        StateHasChanged();
     }
 
     private async Task NextPreset()
     {
-        _loading = true;
-        try
+        var presets = _filteredPresets;
+        if (!presets.Any() || _currentPreset == null) return;
+        
+        var currentIndex = presets.FindIndex(p => p.Name == _currentPreset.Name);
+        var nextIndex = (currentIndex + 1) % presets.Count;
+        await LoadPresetAsync(presets[nextIndex]);
+    }
+
+    private async Task PreviousPreset()
+    {
+        var presets = _filteredPresets;
+        if (!presets.Any() || _currentPreset == null) return;
+        
+        var currentIndex = presets.FindIndex(p => p.Name == _currentPreset.Name);
+        var prevIndex = currentIndex <= 0 ? presets.Count - 1 : currentIndex - 1;
+        await LoadPresetAsync(presets[prevIndex]);
+    }
+
+    private async Task NextInstrument()
+    {
+        if (_currentPreset == null) return;
+        
+        var instruments = _filteredPresets.Select(p => p.Instrument).Distinct().Where(i => !string.IsNullOrEmpty(i)).ToList();
+        var currentInstrument = _currentPreset.Instrument;
+        var currentIndex = instruments.IndexOf(currentInstrument);
+        var nextIndex = (currentIndex + 1) % instruments.Count;
+        var nextInstrument = instruments[nextIndex];
+        
+        var firstPreset = _filteredPresets.FirstOrDefault(p => p.Instrument == nextInstrument);
+        if (firstPreset != null)
         {
-            await Client.NextPresetAsync();
-            await LoadCurrentState();
+            await LoadPresetAsync(firstPreset);
         }
-        catch (Exception ex)
+    }
+
+    private async Task PreviousInstrument()
+    {
+        if (_currentPreset == null) return;
+        
+        var instruments = _filteredPresets.Select(p => p.Instrument).Distinct().Where(i => !string.IsNullOrEmpty(i)).ToList();
+        var currentInstrument = _currentPreset.Instrument;
+        var currentIndex = instruments.IndexOf(currentInstrument);
+        var prevIndex = currentIndex <= 0 ? instruments.Count - 1 : currentIndex - 1;
+        var prevInstrument = instruments[prevIndex];
+        
+        var firstPreset = _filteredPresets.FirstOrDefault(p => p.Instrument == prevInstrument);
+        if (firstPreset != null)
         {
-            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
-            _loading = false;
+            await LoadPresetAsync(firstPreset);
         }
+    }
+
+    private async Task NextFavorite()
+    {
+        if (!_favoritePresets.Any() || _currentPreset == null) return;
+        
+        var currentIndex = _favoritePresets.FindIndex(p => p.Name == _currentPreset.Name);
+        var nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % _favoritePresets.Count;
+        await LoadPresetAsync(_favoritePresets[nextIndex]);
+    }
+
+    private async Task PreviousFavorite()
+    {
+        if (!_favoritePresets.Any() || _currentPreset == null) return;
+        
+        var currentIndex = _favoritePresets.FindIndex(p => p.Name == _currentPreset.Name);
+        var prevIndex = currentIndex <= 0 ? _favoritePresets.Count - 1 : currentIndex - 1;
+        await LoadPresetAsync(_favoritePresets[prevIndex]);
     }
 
     private void OnConditionChanged(double value)
@@ -258,21 +458,18 @@
         _condition = value;
         StateHasChanged();
         
-        // Debounce the API call
         _debounceTimer?.Dispose();
         _debounceTimer = new System.Threading.Timer(async _ =>
         {
             try
             {
-                // Get current parameters to find the correct condition parameter ID
                 var parameters = await Client.GetParametersAsync();
-                var conditionParam = parameters.FirstOrDefault(p => 
+                var conditionParam = parameters.FirstOrDefault(p =>
                     p.Id.Contains("Condition", StringComparison.OrdinalIgnoreCase) ||
                     p.Name.Contains("Condition", StringComparison.OrdinalIgnoreCase));
                 
                 if (conditionParam != null)
                 {
-                    // Update using the correct parameter structure
                     var updatedParam = new ParameterInfo
                     {
                         Id = conditionParam.Id,
@@ -280,20 +477,11 @@
                     };
                     
                     await Client.SetParametersAsync(new List<ParameterInfo> { updatedParam });
-                    Console.WriteLine($"Updated {conditionParam.Id} to {_condition}");
-                }
-                else
-                {
-                    throw new Exception("Condition parameter not found");
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error updating condition: {ex.Message}");
-                await InvokeAsync(() =>
-                {
-                    Snackbar.Add($"Failed to update: {ex.Message}", Severity.Warning);
-                });
             }
         }, null, 300, Timeout.Infinite);
     }
@@ -310,18 +498,6 @@
         if (_condition < 0.3) return Color.Success;
         if (_condition < 0.7) return Color.Warning;
         return Color.Error;
-    }
-
-    private Color GetTagColor(string tag)
-    {
-        // Color code specific tags
-        return tag.ToLowerInvariant() switch
-        {
-            "trial" => Color.Info,
-            "new" => Color.Success,
-            "featured" => Color.Secondary,
-            _ => Color.Default
-        };
     }
 
     public void Dispose()
