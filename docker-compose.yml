@@ -1,0 +1,22 @@
+services:
+  pianoteq-pwa:
+    build:
+      context: .
+      args:
+        VERSION: ${VERSION:-0.0.0-local}
+    image: pianoteq-pwa:${VERSION:-latest}
+    container_name: pianoteq-pwa
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    environment:
+      - TZ=UTC
+    labels:
+      - "com.docker.compose.project=pianoteq"
+      - "description=Pianoteq Remote Control PWA"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

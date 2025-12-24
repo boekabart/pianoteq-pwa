@@ -40,7 +40,7 @@ RUN dotnet test --no-build -c Release
 ###########################################################################################################
 
 FROM restore AS publish
-ARG VERSION
+ARG VERSION=0.0.0-local
 
 RUN dotnet publish src/Pianoteq.Pwa \
  -c Release \

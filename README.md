@@ -1,6 +1,78 @@
 # Pianoteq.Client
 
-A fully typed, async C# client library for the Pianoteq 9 JSON-RPC API.
+A fully typed, async C# client library for the Pianoteq 9 JSON-RPC API, with a Progressive Web App (PWA) for remote control.
+
+## 🎹 Projects
+
+### Pianoteq.Client
+C# client library for the Pianoteq JSON-RPC API.
+
+### Pianoteq.Pwa
+Progressive Web App for controlling Pianoteq remotely. Features:
+- 📱 **Installable** - Add to home screen on mobile/desktop
+- ⚡ **Offline-capable** - Service worker caches app assets
+- ⭐ **Favorites management** - Local storage for favorite presets
+- 🎵 **Browse & load presets** - 3-tier navigation (favorites/instrument/preset)
+- 🎚️ **Parameter control** - Adjust Condition and other parameters
+- 🔒 **Licensed filter** - Show only owned presets
+- 🎨 **Modern UI** - Material Design with MudBlazor
+
+## 🚀 Quick Start
+
+### Running Locally
+```bash
+cd src/Pianoteq.Pwa
+dotnet run
+```
+Open http://localhost:5000 (or port shown in console).
+
+### Docker Deployment
+```bash
+# Using docker-compose (recommended)
+docker-compose up -d
+
+# Or build and run manually
+docker build -t pianoteq-pwa .
+docker run -p 8080:80 pianoteq-pwa
+```
+
+Access at http://localhost:8080.
+
+### Using PowerShell Scripts
+```powershell
+# Build
+.\build.ps1 -Version 1.0.0
+
+# Build Docker image
+.\build.ps1 -Docker -Version 1.0.0
+
+# Deploy
+.\deploy.ps1 start -Port 8080
+
+# View logs
+.\deploy.ps1 logs
+
+# Stop
+.\deploy.ps1 stop
+```
+
+### Prerequisites
+- Pianoteq 9 running with JSON-RPC enabled (Preferences → Remote control)
+- Update server URL in [src/Pianoteq.Pwa/Program.cs](src/Pianoteq.Pwa/Program.cs#L15) if not at `http://192.168.86.66:8081`
+
+### Installing as PWA
+1. Open the app in Chrome/Edge
+2. Click the install icon in the address bar (⊕ or ⬇️)
+3. Or use browser menu: "Install Pianoteq Remote..."
+4. The app will be added to your home screen/apps
+
+**iOS**: Safari → Share → Add to Home Screen
+
+## 📖 Documentation
+
+- [PWA Features & Architecture](docs/PWA.md) - Detailed PWA documentation
+- [API Reference](#api-coverage) - Complete API method list
+- [JSON-RPC Spec](docs/jsonrpc.html) - Pianoteq API documentation
 
 ## Installation
 
