@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#594AE2" rx="80"/>
+  
+  <!-- Piano keyboard -->
+  <g transform="translate(96, 156)">
+    <!-- White keys -->
+    <rect x="0" y="0" width="45" height="200" fill="#FFFFFF" stroke="#1A1A1A" stroke-width="2" rx="4"/>
+    <rect x="48" y="0" width="45" height="200" fill="#FFFFFF" stroke="#1A1A1A" stroke-width="2" rx="4"/>
+    <rect x="96" y="0" width="45" height="200" fill="#FFFFFF" stroke="#1A1A1A" stroke-width="2" rx="4"/>
+    <rect x="144" y="0" width="45" height="200" fill="#FFFFFF" stroke="#1A1A1A" stroke-width="2" rx="4"/>
+    <rect x="192" y="0" width="45" height="200" fill="#FFFFFF" stroke="#1A1A1A" stroke-width="2" rx="4"/>
+    <rect x="240" y="0" width="45" height="200" fill="#FFFFFF" stroke="#1A1A1A" stroke-width="2" rx="4"/>
+    <rect x="288" y="0" width="45" height="200" fill="#FFFFFF" stroke="#1A1A1A" stroke-width="2" rx="4"/>
+    
+    <!-- Black keys -->
+    <rect x="30" y="0" width="30" height="120" fill="#1A1A1A" rx="3"/>
+    <rect x="78" y="0" width="30" height="120" fill="#1A1A1A" rx="3"/>
+    <rect x="174" y="0" width="30" height="120" fill="#1A1A1A" rx="3"/>
+    <rect x="222" y="0" width="30" height="120" fill="#1A1A1A" rx="3"/>
+    <rect x="270" y="0" width="30" height="120" fill="#1A1A1A" rx="3"/>
+    
+    <!-- Highlights on white keys for depth -->
+    <rect x="2" y="2" width="8" height="196" fill="#FFFFFF" opacity="0.3" rx="4"/>
+    <rect x="50" y="2" width="8" height="196" fill="#FFFFFF" opacity="0.3" rx="4"/>
+    <rect x="98" y="2" width="8" height="196" fill="#FFFFFF" opacity="0.3" rx="4"/>
+    <rect x="146" y="2" width="8" height="196" fill="#FFFFFF" opacity="0.3" rx="4"/>
+    <rect x="194" y="2" width="8" height="196" fill="#FFFFFF" opacity="0.3" rx="4"/>
+    <rect x="242" y="2" width="8" height="196" fill="#FFFFFF" opacity="0.3" rx="4"/>
+    <rect x="290" y="2" width="8" height="196" fill="#FFFFFF" opacity="0.3" rx="4"/>
+  </g>
+  
+  <!-- Musical note accent -->
+  <g transform="translate(380, 80)">
+    <circle cx="0" cy="40" r="18" fill="#FFFFFF"/>
+    <ellipse cx="0" cy="40" rx="18" ry="12" fill="#FFFFFF"/>
+    <rect x="-2" y="-30" width="6" height="70" fill="#FFFFFF"/>
+    <path d="M 4,-30 Q 30,-25 28,0 L 22,0 Q 24,-20 4,-24 Z" fill="#FFFFFF"/>
+  </g>
+</svg>

@@ -39,26 +39,31 @@ A modern, installable web application for controlling Pianoteq 9 remotely.
 
 ### Server-Side
 - **nginx**: Static file serving with PWA optimizations
-- **Docker**: Containerized deployment
-- **Gzip compression**: Reduced bandwidth usage
+- **Docker**: Containerized deployment with optimized layering
+- **Gzip/Brotli compression**: Reduced bandwidth usage
 
 ## Deployment
 
 ### Docker Build
-The Dockerfile uses multi-stage builds:
+The Dockerfile uses multi-stage builds with **optimized layer caching**:
 1. **Restore**: Fetch NuGet packages
 2. **Build**: Compile the application
 3. **Test**: Run unit tests (if any)
 4. **Publish**: Create optimized release build
-5. **Final**: nginx Alpine image serving static files
+5. **Final**: nginx Alpine image with smart layering
+
+**Key Optimization**: The final image uses 16 separate COPY layers ordered from most stable (framework files) to least stable (app code). This reduces update downloads from **18 MB to ~200 KB (99% reduction)**.
 
 ```dockerfile
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS sdk
-# ... build stages ...
 FROM nginx:alpine AS final
-COPY nginx.conf /etc/nginx/nginx.conf
-COPY --from=publish /pub/wwwroot /usr/share/nginx/html
+# Layer 1-3: Config and static assets (rarely change)
+# Layer 4-6: .NET runtime and framework (stable)
+# Layer 7-9: Microsoft and System WASMs (stable)
+# Layer 10-11: Third-party dependencies (occasionally change)
+# Layer 12-14: App WASMs and service worker (frequently change)
 ```
+
+See [Docker Optimization Guide](DOCKER-OPTIMIZATION.md) for detailed layer breakdown and caching strategy.
 
 ### nginx Configuration
 Special PWA considerations:

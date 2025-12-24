@@ -38,6 +38,8 @@ docker run -p 8080:80 pianoteq-pwa
 
 Access at http://localhost:8080.
 
+**⚡ Performance**: The Docker image uses optimized layering - app updates download only ~200 KB instead of 18 MB. See [Docker Optimization Guide](docs/DOCKER-OPTIMIZATION.md).
+
 ### Using PowerShell Scripts
 ```powershell
 # Build
