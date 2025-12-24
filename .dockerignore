@@ -1,0 +1,10 @@
+﻿*
+
+!*.sln
+!*.slnx
+!src/
+!Directory.*.props
+!nginx.conf
+
+**/[Bb]in/
+**/[Oo]bj/
