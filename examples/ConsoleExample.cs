@@ -11,7 +11,7 @@ class Program
     static async Task Main(string[] args)
     {
         // Replace with your Pianoteq server address
-        const string serverUrl = "http://192.168.86.66:8081";
+        const string serverUrl = "http://retropie:8081";
 
         using var client = new PianoteqClient(serverUrl);
 

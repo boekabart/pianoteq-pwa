@@ -60,7 +60,7 @@ Access at http://localhost:8080.
 
 ### Prerequisites
 - Pianoteq 9 running with JSON-RPC enabled (Preferences → Remote control)
-- Update server URL in [src/Pianoteq.Pwa/Program.cs](src/Pianoteq.Pwa/Program.cs#L15) if not at `http://192.168.86.66:8081`
+- Update server URL in [src/Pianoteq.Pwa/Program.cs](src/Pianoteq.Pwa/Program.cs#L15) if not at `http://retropie:8081`
 
 ### Installing as PWA
 1. Open the app in Chrome/Edge
@@ -87,7 +87,7 @@ using Pianoteq.Client;
 using Pianoteq.Client.Models;
 
 // Create a client instance
-using var client = new PianoteqClient("http://192.168.86.66:8081");
+using var client = new PianoteqClient("http://retropie:8081");
 
 // Get Pianoteq information
 var info = await client.GetInfoAsync();
@@ -262,7 +262,7 @@ catch (PianoteqException ex)
 ```csharp
 services.AddHttpClient<PianoteqClient>((serviceProvider, httpClient) =>
 {
-    return new PianoteqClient(httpClient, "http://192.168.86.66:8081");
+    return new PianoteqClient(httpClient, "http://retropie:8081");
 });
 ```
 

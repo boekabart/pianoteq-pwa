@@ -13,7 +13,7 @@
 
 Edit [Program.cs](Program.cs) and modify this line:
 ```csharp
-const string serverUrl = "http://192.168.86.66:8081";
+const string serverUrl = "http://retropie:8081";
 ```
 
 ## What the example does

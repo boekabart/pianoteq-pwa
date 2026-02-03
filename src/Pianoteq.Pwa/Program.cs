@@ -19,7 +19,7 @@ builder.Services.AddMudServices();
 builder.Services.AddBlazoredLocalStorage();
 
 // Add Pianoteq client (configure your server URL here)
-builder.Services.AddScoped(sp => new PianoteqClient("http://192.168.86.66:8081"));
+builder.Services.AddScoped(sp => new PianoteqClient("http://retropie:8081"));
 
 // Add Favorites service
 builder.Services.AddScoped<FavoritesService>();
