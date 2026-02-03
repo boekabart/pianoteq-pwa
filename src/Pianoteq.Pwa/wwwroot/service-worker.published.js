@@ -56,7 +56,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
 
   // Don't cache API calls to Pianoteq
-  if (url.hostname === 'retropie' || url.port === '8081') {
+  if (url.hostname === '192.168.86.30' || url.port === '8081') {
     return;
   }
 

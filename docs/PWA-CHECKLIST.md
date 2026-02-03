@@ -183,7 +183,7 @@ If any items fail, check:
 ### Connection Issues
 - Verify Pianoteq is running
 - Check JSON-RPC port (default 8081)
-- Test API endpoint: `curl http://retropie:8081`
+- Test API endpoint: `curl http://192.168.86.30:8081`
 - Check browser console for CORS errors
 
 ### Docker Issues

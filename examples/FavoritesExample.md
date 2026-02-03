@@ -52,7 +52,7 @@ var steinwayFavorites = favorites.Where(f =>
 ```csharp
 using Pianoteq.Client;
 
-var client = new PianoteqClient("http://retropie:8081");
+var client = new PianoteqClient("http://192.168.86.30:8081");
 
 // Get all favorites
 var favorites = await client.GetFavoritePresetsAsync();

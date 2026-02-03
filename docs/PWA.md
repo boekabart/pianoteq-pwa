@@ -239,7 +239,7 @@ Target metrics:
 ### Content Security Policy
 Currently permissive. For production, add CSP headers in nginx:
 ```nginx
-add_header Content-Security-Policy "default-src 'self'; connect-src 'self' http://retropie:8081";
+add_header Content-Security-Policy "default-src 'self'; connect-src 'self' http://192.168.86.30:8081";
 ```
 
 ### CORS

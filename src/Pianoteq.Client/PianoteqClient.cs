@@ -26,7 +26,7 @@ public class PianoteqClient : IDisposable
     /// <summary>
     /// Create a new Pianoteq client
     /// </summary>
-    /// <param name="baseUrl">Base URL of the Pianoteq server (e.g., "http://retropie:8081")</param>
+    /// <param name="baseUrl">Base URL of the Pianoteq server (e.g., "http://192.168.86.30:8081")</param>
     public PianoteqClient(string baseUrl)
     {
         _baseUrl = baseUrl.TrimEnd('/');
@@ -38,7 +38,7 @@ public class PianoteqClient : IDisposable
     /// Create a new Pianoteq client with a custom HttpClient
     /// </summary>
     /// <param name="httpClient">Custom HttpClient instance</param>
-    /// <param name="baseUrl">Base URL of the Pianoteq server (e.g., "http://retropie:8081")</param>
+    /// <param name="baseUrl">Base URL of the Pianoteq server (e.g., "http://192.168.86.30:8081")</param>
     public PianoteqClient(HttpClient httpClient, string baseUrl)
     {
         _httpClient = httpClient;

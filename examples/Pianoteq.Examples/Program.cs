@@ -4,7 +4,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 
 // Replace with your Pianoteq server address
-const string serverUrl = "http://retropie:8081";
+const string serverUrl = "http://192.168.86.30:8081";
 
 Console.WriteLine("=== RAW JSON Response Dump ===\n");
 
